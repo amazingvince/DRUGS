@@ -105,7 +105,7 @@ For more examples, take a look at `just_chat.ipynb`
 
 ### What is a reasonable dose of DRµGS?
 
-The `dose_theta`` parameter defines a maximum angle in radians by which to randomly rotate the A, Q, K, V or H vectors. You probably shouldn't go past 0.1, but this kind of depends on the DRµG type and injection sites.
+The `dose_theta` parameter defines a maximum angle in radians by which to randomly rotate the A, Q, K, V or H vectors. You probably shouldn't go past 0.1, but this kind of depends on the DRµG type and injection sites.
 
 This is also kind of where things get interesting. Consider the following starting prompt:
 
