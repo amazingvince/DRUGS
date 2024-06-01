@@ -604,43 +604,7 @@ class DRUGS:
         #model._update_model_kwargs_for_generation = types.MethodType(_update_model_kwargs_for_generation, model)
         
         return self.model
-        
-    def _prepare_attention_mask_for_generation(
-        self,
-        inputs: torch.Tensor,
-        pad_token_id: Optional[torch.Tensor],
-        eos_token_id: Optional[torch.Tensor],
-    ) -> torch.LongTensor:
-        # No information for attention mask inference -> return default attention mask
-        default_attention_mask = torch.ones(inputs.shape[:2], dtype=torch.long, device=inputs.device)
-        if pad_token_id is None:
-            return default_attention_mask
-
-        is_input_ids = len(inputs.shape) == 2 and inputs.dtype in [torch.int, torch.long]
-        if not is_input_ids:
-            return default_attention_mask
-
-        # Otherwise we have may have information -> try to infer the attention mask
-        if inputs.device.type == "mps":
-            # mps does not support torch.isin (https://github.com/pytorch/pytorch/issues/77764)
-            raise ValueError(
-                "Can't infer missing attention mask on `mps` device. Please provide an `attention_mask` or use a different device."
-            )
-
-        is_pad_token_in_inputs = (pad_token_id is not None) and (
-            torch.isin(elements=inputs, test_elements=pad_token_id).any()
-        )
-        is_pad_token_not_equal_to_eos_token_id = (eos_token_id is None) or ~(
-            torch.isin(elements=eos_token_id, test_elements=pad_token_id).any()
-        )
-        can_infer_attention_mask = is_pad_token_in_inputs * is_pad_token_not_equal_to_eos_token_id
-        attention_mask_from_padding = inputs.ne(pad_token_id).long()
-
-        attention_mask = (
-            attention_mask_from_padding * can_infer_attention_mask + default_attention_mask * ~can_infer_attention_mask
-        )
-        return attention_mask
-    
+  
     def go_through_hell(self, inputs, generation_config = None,
                         min_new_tokens = None, max_new_tokens = None,
                         logits_processor = None, stopping_criteria = None, 
@@ -665,11 +629,11 @@ class DRUGS:
 
         if model_kwargs.get("attention_mask", None) is None and requires_attention_mask and accepts_attention_mask:
             pad_token_tensor = torch.tensor([self.tokenizer.pad_token_id], device=inputs_tensor.device) if generation_config.pad_token_id is not None else None
-+           eos_token_tensor = torch.tensor([self.tokenizer.eos_token_id], device=inputs_tensor.device) if generation_config.eos_token_id is not None else None
-            model_kwargs["attention_mask"] = self._prepare_attention_mask_for_generation(
+            eos_token_tensor = torch.tensor([self.tokenizer.eos_token_id], device=inputs_tensor.device) if generation_config.eos_token_id is not None else None
+            model_kwargs["attention_mask"] = self.model._prepare_attention_mask_for_generation(
                 inputs_tensor,               
                 pad_token_tensor,
-+               eos_token_tensor,
+                eos_token_tensor,
             )
 
         if (generation_config.pad_token_id is not None
